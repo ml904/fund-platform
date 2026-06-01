@@ -1,6 +1,7 @@
 import os
 import hashlib
 from datetime import date
+from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from dotenv import load_dotenv
 from database import init_db, get_db
@@ -16,37 +17,6 @@ def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 
-def current_user():
-    uid = session.get("user_id")
-    if not uid:
-        return None
-    db = get_db()
-    row = db.execute("SELECT * FROM investisseurs WHERE id=?", (uid,)).fetchone()
-    db.close()
-    return dict(row) if row else None
-
-
-def login_required(fn):
-    from functools import wraps
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if not session.get("user_id"):
-            return redirect(url_for("login"))
-        return fn(*args, **kwargs)
-    return wrapper
-
-
-def admin_required(fn):
-    from functools import wraps
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        user = current_user()
-        if not user or user.get("role") != "admin":
-            return redirect(url_for("dashboard"))
-        return fn(*args, **kwargs)
-    return wrapper
-
-
 def seed_admin():
     db = get_db()
     count = db.execute("SELECT COUNT(*) FROM investisseurs").fetchone()[0]
@@ -58,6 +28,40 @@ def seed_admin():
         db.commit()
         print("Admin créé : Malick / admin123")
     db.close()
+
+
+# Initialisation au démarrage (gunicorn + dev)
+init_db()
+seed_admin()
+
+
+def current_user():
+    uid = session.get("user_id")
+    if not uid:
+        return None
+    db = get_db()
+    row = db.execute("SELECT * FROM investisseurs WHERE id=?", (uid,)).fetchone()
+    db.close()
+    return dict(row) if row else None
+
+
+def login_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("login"))
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        user = current_user()
+        if not user or user.get("role") != "admin":
+            return redirect(url_for("dashboard"))
+        return fn(*args, **kwargs)
+    return wrapper
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -202,7 +206,5 @@ def add_funds():
 
 
 if __name__ == "__main__":
-    init_db()
-    seed_admin()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
