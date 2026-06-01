@@ -3,37 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fund Manager — Connexion</title>
+  <title>M&O Capital — Connexion</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <div class="login-wrap">
   <div class="login-card">
     <div class="login-logo">
-      <h1>⬡ FUND MGR</h1>
-      <p>Plateforme de gestion de fonds</p>
+      <div class="fund-name">M<span>&</span>O Capital</div>
+      <div class="fund-tagline">Gestion de fonds privé · Accès sécurisé</div>
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for cat, msg in messages %}
-        <div class="alert alert-{{ cat }}">{{ msg }}</div>
-      {% endfor %}
-    {% endwith %}
-
     {% if error %}
-      <div class="alert alert-error">{{ error }}</div>
+      <div class="toast" style="position:static;margin-bottom:1rem;max-width:100%;" class="toast-error">⚠ {{ error }}</div>
     {% endif %}
 
     <form method="POST" action="/">
       <div class="form-group">
-        <label>Nom</label>
+        <label>Identifiant</label>
         <input type="text" name="nom" placeholder="Votre nom" autocomplete="username" required>
       </div>
       <div class="form-group">
         <label>Mot de passe</label>
         <input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
       </div>
-      <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:0.5rem;">Accéder au tableau de bord</button>
     </form>
   </div>
 </div>

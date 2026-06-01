@@ -1,11 +1,14 @@
 import os
 import hashlib
+import io
 from datetime import date
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from dotenv import load_dotenv
 from database import init_db, get_db
 import fund_logic
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
 
 load_dotenv()
 
@@ -222,6 +225,102 @@ def add_funds():
     db.close()
     flash("Fonds ajoutés.", "success")
     return redirect(url_for("admin_dashboard"))
+
+
+# ── Export Excel ──────────────────────────────────────────────────────────────
+
+def make_excel(headers, rows, sheet_name="Historique"):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = sheet_name
+
+    header_fill = PatternFill("solid", fgColor="0d1117")
+    header_font = Font(bold=True, color="00e87a")
+
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+        ws.column_dimensions[cell.column_letter].width = max(len(h) + 4, 14)
+
+    for row in rows:
+        ws.append(list(row))
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+@app.route("/admin/export")
+@login_required
+@admin_required
+def export_admin():
+    db = get_db()
+    soldes = db.execute("SELECT * FROM soldes ORDER BY date DESC").fetchall()
+    investors = db.execute("SELECT * FROM investisseurs").fetchall()
+    gains = db.execute("SELECT * FROM gains_investisseurs ORDER BY date DESC").fetchall()
+    db.close()
+
+    wb = openpyxl.Workbook()
+
+    # Feuille 1 : Historique soldes
+    ws1 = wb.active
+    ws1.title = "Soldes"
+    h1 = ["Date", "Solde (USDT)", "Gain jour", "% jour", "Gain total"]
+    hf = PatternFill("solid", fgColor="0d1117")
+    hfont = Font(bold=True, color="00e87a")
+    for col, h in enumerate(h1, 1):
+        c = ws1.cell(row=1, column=col, value=h)
+        c.font = hfont; c.fill = hf
+        ws1.column_dimensions[c.column_letter].width = 18
+    for s in soldes:
+        ws1.append([s["date"], s["solde"], s["gain_jour"], s["pct_jour"], s["gain_total"]])
+
+    # Feuille 2 : Investisseurs
+    ws2 = wb.create_sheet("Investisseurs")
+    h2 = ["Nom", "Dépôt (USDT)", "Rôle", "Membre depuis"]
+    for col, h in enumerate(h2, 1):
+        c = ws2.cell(row=1, column=col, value=h)
+        c.font = hfont; c.fill = hf
+        ws2.column_dimensions[c.column_letter].width = 20
+    for inv in investors:
+        ws2.append([inv["nom"], inv["depot_total"], inv["role"], inv["date_entree"]])
+
+    # Feuille 3 : Gains par investisseur
+    ws3 = wb.create_sheet("Gains")
+    h3 = ["Date", "Investisseur", "Part %", "Gain (USDT)"]
+    for col, h in enumerate(h3, 1):
+        c = ws3.cell(row=1, column=col, value=h)
+        c.font = hfont; c.fill = hf
+        ws3.column_dimensions[c.column_letter].width = 20
+    for g in gains:
+        ws3.append([g["date"], g["investisseur_nom"], g["part_pct"], g["gain"]])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_file(buf, download_name="MO_Capital_historique.xlsx",
+                     as_attachment=True, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+@app.route("/investor/export")
+@login_required
+def export_investor():
+    user = current_user()
+    db = get_db()
+    gains = db.execute(
+        "SELECT * FROM gains_investisseurs WHERE investisseur_id=? ORDER BY date DESC",
+        (user["id"],)
+    ).fetchall()
+    db.close()
+
+    headers = ["Date", "Part %", "Gain (USDT)"]
+    rows = [(g["date"], g["part_pct"], g["gain"]) for g in gains]
+    buf = make_excel(headers, rows, "Mes gains")
+    return send_file(buf, download_name=f"MO_Capital_{user['nom']}.xlsx",
+                     as_attachment=True, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 if __name__ == "__main__":

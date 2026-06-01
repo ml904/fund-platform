@@ -3,97 +3,112 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fund Manager — Mon Compte</title>
+  <title>M&O Capital — Mon compte</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <div class="layout">
 
-  <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="sidebar-logo">⬡ FUND MGR<span>Investisseur</span></div>
+    <div class="sidebar-brand">
+      <div class="name">M<span>&</span>O Capital</div>
+      <div class="tagline">Gestion de fonds privé</div>
+    </div>
     <div class="sidebar-user">
-      <div class="name">{{ user.nom }}</div>
-      <div class="role">Investisseur</div>
+      <div class="avatar">{{ user.nom[0].upper() }}</div>
+      <div class="info">
+        <div class="uname">{{ user.nom }}</div>
+        <div class="urole">Investisseur</div>
+      </div>
     </div>
     <nav class="sidebar-nav">
       <a href="/investor" class="active">Mon compte</a>
     </nav>
     <div class="sidebar-bottom">
-      <a href="/logout" class="btn btn-ghost btn-full" style="text-align:center;">Déconnexion</a>
+      <a href="/logout" class="btn btn-ghost btn-full" style="text-align:center;display:block;">Déconnexion</a>
     </div>
   </aside>
 
-  <!-- Mobile nav -->
   <div class="mobile-nav">
-    <span style="font-family:'Space Mono',monospace;color:var(--green);">⬡ FUND MGR</span>
-    <div style="display:flex;align-items:center;gap:0.5rem;">
-      <span style="font-size:0.82rem;color:var(--muted);">{{ user.nom }}</span>
-      <a href="/logout" class="btn btn-ghost" style="font-size:0.8rem;padding:0.4rem 0.8rem;">Déco</a>
+    <span style="font-family:'DM Serif Display',serif;font-size:1.1rem;">M<span style="color:var(--green)">&</span>O</span>
+    <div style="display:flex;align-items:center;gap:0.6rem;">
+      <div class="avatar" style="width:28px;height:28px;font-size:0.72rem;">{{ user.nom[0].upper() }}</div>
+      <a href="/logout" class="btn btn-ghost btn-sm">Déco</a>
     </div>
   </div>
 
-  <!-- Main -->
   <main class="main">
-    <div class="page-title">Mon Compte</div>
-
-    <!-- Stats cards -->
-    <div class="inv-stat-grid">
-
-      <div class="inv-stat">
-        <div class="label">Ma part</div>
-        <div class="value blue">{{ "%.2f"|format(stats.part_pct) }}%</div>
-      </div>
-
-      <div class="inv-stat">
-        <div class="label">Dépôt total</div>
-        <div class="value white">{{ "%.2f"|format(stats.investor.depot_total) }}<small style="font-size:1rem"> USDT</small></div>
-      </div>
-
-      <div class="inv-stat">
-        <div class="label">Valeur actuelle</div>
-        <div class="value yellow">{{ "%.2f"|format(stats.valeur_actuelle) }}<small style="font-size:1rem"> USDT</small></div>
-      </div>
-
-      <div class="inv-stat">
-        <div class="label">Gain / Perte jour</div>
-        <div class="value {% if stats.gain_jour > 0 %}green{% elif stats.gain_jour < 0 %}red{% else %}white{% endif %}">
-          {% if stats.gain_jour > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_jour) }}
-        </div>
-      </div>
-
-      <div class="inv-stat">
-        <div class="label">Gain total</div>
-        <div class="value {% if stats.gain_total > 0 %}green{% elif stats.gain_total < 0 %}red{% else %}white{% endif %}">
-          {% if stats.gain_total > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_total) }}<small style="font-size:1rem"> USDT</small>
-        </div>
-      </div>
-
-      <div class="inv-stat">
-        <div class="label">Solde du fond</div>
-        <div class="value yellow">{{ "%.2f"|format(stats.solde_actuel) }}<small style="font-size:1rem"> USDT</small></div>
-      </div>
-
+    <div class="page-header">
+      <h1>Bonjour, {{ user.nom }}</h1>
+      <div class="sub">Membre depuis le {{ stats.investor.date_entree or stats.investor.created_at[:10] }}</div>
     </div>
 
-    <!-- Historique gains -->
+    <!-- Valeur principale -->
+    <div class="kpi-hero">
+      <div>
+        <div class="main-label">Valeur de ma part</div>
+        <div class="main-val">{{ "%.2f"|format(stats.valeur_actuelle) }} <span style="font-size:1.2rem;color:var(--muted2)">USDT</span></div>
+        <div class="main-sub">Dépôt initial : {{ "%.2f"|format(stats.investor.depot_total) }} USDT</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="main-label">Ma performance</div>
+        <div class="main-val {% if stats.gain_total > 0 %}gain{% elif stats.gain_total < 0 %}loss{% else %}neutral{% endif %}" style="font-size:1.8rem;">
+          {% if stats.gain_total > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_total) }}
+        </div>
+        <div class="main-sub {% if stats.gain_jour > 0 %}gain{% elif stats.gain_jour < 0 %}loss{% else %}neutral{% endif %}">
+          Aujourd'hui : {% if stats.gain_jour > 0 %}+{% endif %}{{ "%.4f"|format(stats.gain_jour) }} USDT
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats secondaires -->
+    <div class="inv-stat-grid">
+      <div class="inv-stat">
+        <div class="label">Ma part du fonds</div>
+        <div class="value gain">{{ "%.2f"|format(stats.part_pct) }}<small>%</small></div>
+      </div>
+      <div class="inv-stat">
+        <div class="label">Valeur du fonds</div>
+        <div class="value neutral">{{ "%.2f"|format(stats.solde_actuel) }}<small> USDT</small></div>
+      </div>
+      <div class="inv-stat">
+        <div class="label">Gain aujourd'hui</div>
+        <div class="value {% if stats.gain_jour > 0 %}gain{% elif stats.gain_jour < 0 %}loss{% else %}neutral{% endif %}">
+          {% if stats.gain_jour > 0 %}+{% endif %}{{ "%.4f"|format(stats.gain_jour) }}<small> USDT</small>
+        </div>
+      </div>
+      <div class="inv-stat">
+        <div class="label">Gain total</div>
+        <div class="value {% if stats.gain_total > 0 %}gain{% elif stats.gain_total < 0 %}loss{% else %}neutral{% endif %}">
+          {% if stats.gain_total > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_total) }}<small> USDT</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historique -->
     <div class="card">
-      <div class="card-title">Historique 30 derniers jours</div>
+      <div class="card-header">
+        <div>
+          <div class="card-title">Mes 30 derniers jours</div>
+          <div class="card-sub">Évolution de ma part</div>
+        </div>
+        <a href="/investor/export" class="btn btn-excel btn-sm">Export Excel</a>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Date</th>
-              <th>Part %</th>
+              <th>Ma part</th>
               <th>Gain / Perte</th>
             </tr>
           </thead>
           <tbody>
             {% for row in stats.historique %}
             <tr>
-              <td>{{ row.date }}</td>
-              <td class="blue">{{ "%.2f"|format(row.part_pct) }}%</td>
-              <td class="{% if row.gain > 0 %}green{% elif row.gain < 0 %}red{% else %}white{% endif %}">
+              <td class="mono">{{ row.date }}</td>
+              <td class="mono gain">{{ "%.2f"|format(row.part_pct) }}%</td>
+              <td class="mono {% if row.gain > 0 %}gain{% elif row.gain < 0 %}loss{% else %}neutral{% endif %}">
                 {% if row.gain > 0 %}+{% endif %}{{ "%.4f"|format(row.gain) }} USDT
               </td>
             </tr>
@@ -103,11 +118,6 @@
           </tbody>
         </table>
       </div>
-    </div>
-
-    <!-- Info entrée -->
-    <div style="text-align:center;color:var(--muted);font-size:0.78rem;margin-top:1rem;font-family:'Space Mono',monospace;">
-      Membre depuis le {{ stats.investor.date_entree or stats.investor.created_at[:10] }}
     </div>
 
   </main>
