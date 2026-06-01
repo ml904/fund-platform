@@ -112,6 +112,7 @@
               <th>Part %</th>
               <th>Valeur actuelle</th>
               <th>Gain total</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -124,6 +125,7 @@
               <td class="{% if inv.gain_total_inv > 0 %}green{% elif inv.gain_total_inv < 0 %}red{% else %}white{% endif %}">
                 {% if inv.gain_total_inv > 0 %}+{% endif %}{{ "%.2f"|format(inv.gain_total_inv) }}
               </td>
+              <td><button class="btn btn-ghost" style="font-size:0.75rem;padding:0.3rem 0.6rem;" onclick="openEditModal('{{ inv.id }}','{{ inv.nom }}','{{ inv.depot_total }}')">Modifier</button></td>
             </tr>
             {% else %}
             <tr><td colspan="5" style="color:var(--muted);text-align:center;">Aucun investisseur</td></tr>
@@ -220,9 +222,35 @@
   </div>
 </div>
 
+<!-- Modal : Modifier dépôt -->
+<div class="modal-overlay" id="modal-edit-investor">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-edit-investor')">✕</button>
+    <div class="modal-title">Modifier le dépôt</div>
+    <form method="POST" action="/admin/investisseur/modifier">
+      <input type="hidden" name="investor_id" id="edit-investor-id">
+      <div class="form-group">
+        <label>Investisseur</label>
+        <input type="text" id="edit-investor-nom" disabled style="opacity:0.5;">
+      </div>
+      <div class="form-group">
+        <label>Dépôt total (USDT)</label>
+        <input type="number" name="depot_total" id="edit-depot-total" step="0.01" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
 <script>
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openEditModal(id, nom, depot) {
+  document.getElementById('edit-investor-id').value = id;
+  document.getElementById('edit-investor-nom').value = nom;
+  document.getElementById('edit-depot-total').value = depot;
+  openModal('modal-edit-investor');
+}
 document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
 });

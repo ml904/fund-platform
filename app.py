@@ -177,6 +177,25 @@ def add_investor():
     return redirect(url_for("admin_dashboard"))
 
 
+@app.route("/admin/investisseur/modifier", methods=["POST"])
+@login_required
+@admin_required
+def edit_investor():
+    investor_id = request.form.get("investor_id", "")
+    try:
+        nouveau_depot = float(request.form.get("depot_total", ""))
+    except ValueError:
+        flash("Montant invalide.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    db = get_db()
+    db.execute("UPDATE investisseurs SET depot_total=? WHERE id=?", (nouveau_depot, investor_id))
+    db.commit()
+    db.close()
+    flash("Dépôt mis à jour.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
 @app.route("/admin/investisseur/fonds", methods=["POST"])
 @login_required
 @admin_required
