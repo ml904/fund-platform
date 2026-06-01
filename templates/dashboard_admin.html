@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fund Manager — Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">⬡ FUND MGR<span>Administration</span></div>
+    <div class="sidebar-user">
+      <div class="name">{{ user.nom }}</div>
+      <div class="role">Admin</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/admin" class="active">Dashboard</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <a href="/logout" class="btn btn-ghost btn-full" style="text-align:center;">Déconnexion</a>
+    </div>
+  </aside>
+
+  <!-- Mobile nav -->
+  <div class="mobile-nav">
+    <span style="font-family:'Space Mono',monospace;color:var(--green);">⬡ FUND MGR</span>
+    <a href="/logout" class="btn btn-ghost" style="font-size:0.8rem;padding:0.4rem 0.8rem;">Déco</a>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="page-title">Dashboard Admin <span>{{ today }}</span></div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Solde actuel</div>
+        <div class="kpi-value yellow">{{ "%.2f"|format(stats.solde_actuel) }} <small style="font-size:0.9rem">USDT</small></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Gain / Perte jour</div>
+        <div class="kpi-value {% if stats.gain_jour > 0 %}green{% elif stats.gain_jour < 0 %}red{% else %}white{% endif %}">
+          {% if stats.gain_jour > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_jour) }}
+        </div>
+        <div class="kpi-sub {% if stats.pct_jour > 0 %}green{% elif stats.pct_jour < 0 %}red{% else %}white{% endif %}">
+          {% if stats.pct_jour > 0 %}+{% endif %}{{ "%.2f"|format(stats.pct_jour) }}%
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Gain total</div>
+        <div class="kpi-value {% if stats.gain_total > 0 %}green{% elif stats.gain_total < 0 %}red{% else %}white{% endif %}">
+          {% if stats.gain_total > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_total) }}
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Investisseurs</div>
+        <div class="kpi-value blue">{{ stats.nb_investisseurs }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Capital déposé</div>
+        <div class="kpi-value white">{{ "%.2f"|format(stats.total_depot) }} <small style="font-size:0.9rem">USDT</small></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+
+      <!-- Saisie solde -->
+      <div class="card">
+        <div class="card-title">Saisir le solde du jour</div>
+        <form method="POST" action="/admin/solde">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" name="date" value="{{ today }}" required>
+          </div>
+          <div class="form-group">
+            <label>Solde (USDT)</label>
+            <input type="number" name="solde" step="0.01" placeholder="0.00" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Enregistrer</button>
+        </form>
+      </div>
+
+      <!-- Actions -->
+      <div class="card">
+        <div class="card-title">Actions</div>
+        <div style="display:flex;flex-direction:column;gap:0.8rem;">
+          <button class="btn btn-blue btn-full" onclick="openModal('modal-add-investor')">+ Ajouter un investisseur</button>
+          <button class="btn btn-yellow btn-full" onclick="openModal('modal-add-funds')">+ Ajouter des fonds</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tableau investisseurs -->
+    <div class="card">
+      <div class="card-title">Investisseurs</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Dépôt</th>
+              <th>Part %</th>
+              <th>Valeur actuelle</th>
+              <th>Gain total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in stats.investors %}
+            <tr>
+              <td>{{ inv.nom }}</td>
+              <td>{{ "%.2f"|format(inv.depot_total) }} USDT</td>
+              <td class="blue">{{ "%.2f"|format(inv.part_pct) }}%</td>
+              <td class="yellow">{{ "%.2f"|format(inv.valeur_actuelle) }} USDT</td>
+              <td class="{% if inv.gain_total_inv > 0 %}green{% elif inv.gain_total_inv < 0 %}red{% else %}white{% endif %}">
+                {% if inv.gain_total_inv > 0 %}+{% endif %}{{ "%.2f"|format(inv.gain_total_inv) }}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="color:var(--muted);text-align:center;">Aucun investisseur</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Historique 30j -->
+    <div class="card">
+      <div class="card-title">Historique 30 derniers jours</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Solde</th>
+              <th>Gain jour</th>
+              <th>% jour</th>
+              <th>Gain total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in stats.historique %}
+            <tr>
+              <td>{{ row.date }}</td>
+              <td class="yellow">{{ "%.2f"|format(row.solde) }}</td>
+              <td class="{% if row.gain_jour > 0 %}green{% elif row.gain_jour < 0 %}red{% else %}white{% endif %}">
+                {% if row.gain_jour > 0 %}+{% endif %}{{ "%.2f"|format(row.gain_jour) }}
+              </td>
+              <td class="{% if row.pct_jour > 0 %}green{% elif row.pct_jour < 0 %}red{% else %}white{% endif %}">
+                {% if row.pct_jour > 0 %}+{% endif %}{{ "%.2f"|format(row.pct_jour) }}%
+              </td>
+              <td class="{% if row.gain_total > 0 %}green{% elif row.gain_total < 0 %}red{% else %}white{% endif %}">
+                {% if row.gain_total > 0 %}+{% endif %}{{ "%.2f"|format(row.gain_total) }}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="color:var(--muted);text-align:center;">Aucun historique</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal : Ajouter investisseur -->
+<div class="modal-overlay" id="modal-add-investor">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-add-investor')">✕</button>
+    <div class="modal-title">Nouvel investisseur</div>
+    <form method="POST" action="/admin/investisseur/ajouter">
+      <div class="form-group">
+        <label>Nom</label>
+        <input type="text" name="nom" placeholder="Nom de l'investisseur" required>
+      </div>
+      <div class="form-group">
+        <label>Dépôt initial (USDT)</label>
+        <input type="number" name="depot" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Mot de passe</label>
+        <input type="password" name="password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-blue btn-full">Créer</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal : Ajouter fonds -->
+<div class="modal-overlay" id="modal-add-funds">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-add-funds')">✕</button>
+    <div class="modal-title">Ajouter des fonds</div>
+    <form method="POST" action="/admin/investisseur/fonds">
+      <div class="form-group">
+        <label>Investisseur</label>
+        <select name="investor_id" required>
+          <option value="">— Choisir —</option>
+          {% for inv in stats.investors %}
+          <option value="{{ inv.id }}">{{ inv.nom }} ({{ "%.2f"|format(inv.depot_total) }} USDT)</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Montant à ajouter (USDT)</label>
+        <input type="number" name="montant" step="0.01" placeholder="0.00" required>
+      </div>
+      <button type="submit" class="btn btn-yellow btn-full">Ajouter</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
