@@ -9,14 +9,15 @@
 <body>
 <div class="layout">
 
+  <!-- ── Sidebar desktop ── -->
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="name">M<span>&</span>O Capital</div>
       <div class="tagline">Gestion de fonds privé</div>
     </div>
     <div class="sidebar-user">
-      <div class="avatar">{{ user.nom[0].upper() }}</div>
-      <div class="info">
+      <div class="avatar avatar-lg">{{ user.nom[0].upper() }}</div>
+      <div>
         <div class="uname">{{ user.nom }}</div>
         <div class="urole">Administrateur</div>
       </div>
@@ -25,47 +26,52 @@
       <a href="/admin" class="active">Vue d'ensemble</a>
     </nav>
     <div class="sidebar-bottom">
-      <a href="/logout" class="btn btn-ghost btn-full" style="text-align:center;display:block;">Déconnexion</a>
+      <a href="/logout" class="btn btn-ghost btn-full">Déconnexion</a>
     </div>
   </aside>
 
+  <!-- ── Nav mobile ── -->
   <div class="mobile-nav">
-    <span style="font-family:'DM Serif Display',serif;font-size:1.1rem;">M<span style="color:var(--green)">&</span>O</span>
-    <a href="/logout" class="btn btn-ghost btn-sm">Déco</a>
+    <div class="brand">M<span>&</span>O Capital</div>
+    <div class="right">
+      <div class="avatar">{{ user.nom[0].upper() }}</div>
+      <a href="/logout" class="btn btn-ghost btn-sm">Déco</a>
+    </div>
   </div>
 
+  <!-- ── Main ── -->
   <main class="main">
+
     <div class="page-header">
       <h1>Vue d'ensemble</h1>
-      <div class="sub">Mis à jour le {{ today }}</div>
+      <div class="sub">{{ today }}</div>
     </div>
 
-    <!-- Solde principal -->
+    <!-- Hero solde -->
     <div class="kpi-hero">
       <div>
         <div class="main-label">Valeur du fonds</div>
-        <div class="main-val">{{ "%.2f"|format(stats.solde_actuel) }} <span style="font-size:1.2rem;color:var(--muted2)">USDT</span></div>
+        <div class="main-val">{{ "%.2f"|format(stats.solde_actuel) }} <span style="font-size:1rem;color:var(--muted2)">USDT</span></div>
         <div class="main-sub">Capital déposé : {{ "%.2f"|format(stats.total_depot) }} USDT · {{ stats.nb_investisseurs }} investisseur{% if stats.nb_investisseurs > 1 %}s{% endif %}</div>
       </div>
-      <div style="text-align:right;">
-        <div class="main-label">Performance globale</div>
-        <div class="main-val {% if stats.gain_total > 0 %}gain{% elif stats.gain_total < 0 %}loss{% else %}neutral{% endif %}" style="font-size:1.8rem;">
+      <div class="right">
+        <div class="main-label">Performance totale</div>
+        <div class="main-val {% if stats.gain_total > 0 %}gain{% elif stats.gain_total < 0 %}loss{% else %}neutral{% endif %}" style="font-size:1.7rem;">
           {% if stats.gain_total > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_total) }}
         </div>
         <div class="main-sub {% if stats.pct_jour > 0 %}gain{% elif stats.pct_jour < 0 %}loss{% else %}neutral{% endif %}">
-          Aujourd'hui : {% if stats.pct_jour > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_jour) }} USDT ({% if stats.pct_jour > 0 %}+{% endif %}{{ "%.2f"|format(stats.pct_jour) }}%)
+          Auj. : {% if stats.pct_jour > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_jour) }} ({% if stats.pct_jour > 0 %}+{% endif %}{{ "%.2f"|format(stats.pct_jour) }}%)
         </div>
       </div>
     </div>
 
+    <!-- Actions + Saisie solde -->
     <div class="grid-2">
-
-      <!-- Saisie solde -->
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">Saisir le solde du soir</div>
-            <div class="card-sub">Entrez la valeur totale du portefeuille</div>
+            <div class="card-title">Solde du soir</div>
+            <div class="card-sub">Saisir la valeur totale du portefeuille</div>
           </div>
         </div>
         <form method="POST" action="/admin/solde">
@@ -74,28 +80,27 @@
             <input type="date" name="date" value="{{ today }}" required>
           </div>
           <div class="form-group">
-            <label>Solde total (USDT)</label>
+            <label>Solde (USDT)</label>
             <input type="number" name="solde" step="0.01" placeholder="0.00" required>
           </div>
           <button type="submit" class="btn btn-primary btn-full">Enregistrer</button>
         </form>
       </div>
 
-      <!-- Actions -->
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">Gérer les investisseurs</div>
-            <div class="card-sub">Ajouter ou modifier</div>
+            <div class="card-title">Actions</div>
+            <div class="card-sub">Gérer les investisseurs</div>
           </div>
         </div>
         <div class="action-list">
           <button class="btn btn-secondary btn-full" onclick="openModal('modal-add-investor')">Nouvel investisseur</button>
           <button class="btn btn-secondary btn-full" onclick="openModal('modal-add-funds')">Ajouter des fonds</button>
-          <a href="/admin/export" class="btn btn-excel btn-full" style="text-align:center;">Exporter l'historique (.xlsx)</a>
+          <button class="btn btn-danger btn-full" onclick="openModal('modal-retrait')">Retrait de fonds</button>
+          <a href="/admin/export" class="btn btn-excel btn-full">Exporter (.xlsx)</a>
         </div>
       </div>
-
     </div>
 
     <!-- Tableau investisseurs -->
@@ -103,7 +108,7 @@
       <div class="card-header">
         <div>
           <div class="card-title">Investisseurs</div>
-          <div class="card-sub">Répartition des parts et performances</div>
+          <div class="card-sub">Parts et performances</div>
         </div>
       </div>
       <div class="table-wrap">
@@ -116,29 +121,30 @@
               <th>Part</th>
               <th>Valeur actuelle</th>
               <th>Gain / Perte</th>
-              <th></th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for inv in stats.investors %}
             <tr>
               <td>
-                <div style="display:flex;align-items:center;gap:0.6rem;">
-                  <div class="avatar" style="width:28px;height:28px;font-size:0.7rem;">{{ inv.nom[0].upper() }}</div>
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                  <div class="avatar" style="width:26px;height:26px;font-size:0.68rem;">{{ inv.nom[0].upper() }}</div>
                   <span style="font-weight:600;">{{ inv.nom }}</span>
                 </div>
               </td>
-              <td>
-                <span class="badge badge-{{ inv.role }}">{{ 'Admin' if inv.role == 'admin' else 'Investisseur' }}</span>
-              </td>
-              <td class="mono">{{ "%.2f"|format(inv.depot_total) }} USDT</td>
+              <td><span class="badge badge-{{ inv.role }}">{{ 'Admin' if inv.role == 'admin' else 'Invest.' }}</span></td>
+              <td class="mono">{{ "%.2f"|format(inv.depot_total) }}</td>
               <td class="mono gain">{{ "%.2f"|format(inv.part_pct) }}%</td>
-              <td class="mono" style="color:#e6edf3;">{{ "%.2f"|format(inv.valeur_actuelle) }} USDT</td>
+              <td class="mono">{{ "%.2f"|format(inv.valeur_actuelle) }}</td>
               <td class="mono {% if inv.gain_total_inv > 0 %}gain{% elif inv.gain_total_inv < 0 %}loss{% else %}neutral{% endif %}">
                 {% if inv.gain_total_inv > 0 %}+{% endif %}{{ "%.2f"|format(inv.gain_total_inv) }}
               </td>
               <td>
-                <button class="btn btn-ghost btn-sm" onclick="openEditModal('{{ inv.id }}','{{ inv.nom }}','{{ inv.depot_total }}')">Modifier</button>
+                <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+                  <button class="btn btn-ghost btn-sm" onclick="openEditModal('{{ inv.id }}','{{ inv.nom }}','{{ inv.depot_total }}')">Modifier</button>
+                  <button class="btn btn-ghost btn-sm" onclick="openRoleModal('{{ inv.id }}','{{ inv.nom }}','{{ inv.role }}')">Rôle</button>
+                </div>
               </td>
             </tr>
             {% else %}
@@ -153,7 +159,7 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">Historique des 30 derniers jours</div>
+          <div class="card-title">Historique 30 jours</div>
           <div class="card-sub">Évolution quotidienne du fonds</div>
         </div>
         <a href="/admin/export" class="btn btn-excel btn-sm">Export Excel</a>
@@ -164,16 +170,16 @@
             <tr>
               <th>Date</th>
               <th>Solde</th>
-              <th>Variation jour</th>
+              <th>Variation</th>
               <th>%</th>
-              <th>Performance totale</th>
+              <th>Perf. totale</th>
             </tr>
           </thead>
           <tbody>
             {% for row in stats.historique %}
             <tr>
               <td class="mono">{{ row.date }}</td>
-              <td class="mono" style="color:var(--text);">{{ "%.2f"|format(row.solde) }}</td>
+              <td class="mono">{{ "%.2f"|format(row.solde) }}</td>
               <td class="mono {% if row.gain_jour > 0 %}gain{% elif row.gain_jour < 0 %}loss{% else %}neutral{% endif %}">
                 {% if row.gain_jour > 0 %}+{% endif %}{{ "%.2f"|format(row.gain_jour) }}
               </td>
@@ -195,41 +201,32 @@
   </main>
 </div>
 
-<!-- Toast notifications -->
+<!-- Toasts -->
 <div class="toast-container">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat, msg in messages %}
-      <div class="toast toast-{{ cat }}">
-        {{ '✓' if cat == 'success' else '⚠' }} {{ msg }}
-      </div>
+      <div class="toast toast-{{ cat }}">{{ '✓' if cat == 'success' else '⚠' }} {{ msg }}</div>
     {% endfor %}
   {% endwith %}
 </div>
 
-<!-- Modal : Nouvel investisseur -->
+<!-- ── Modals ── -->
+
+<!-- Nouvel investisseur -->
 <div class="modal-overlay" id="modal-add-investor">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-investor')">✕</button>
     <div class="modal-title">Nouvel investisseur</div>
     <form method="POST" action="/admin/investisseur/ajouter">
-      <div class="form-group">
-        <label>Nom</label>
-        <input type="text" name="nom" placeholder="Prénom ou pseudonyme" required>
-      </div>
-      <div class="form-group">
-        <label>Dépôt initial (USDT)</label>
-        <input type="number" name="depot" step="0.01" placeholder="0.00">
-      </div>
-      <div class="form-group">
-        <label>Mot de passe</label>
-        <input type="password" name="password" placeholder="••••••••" required>
-      </div>
+      <div class="form-group"><label>Nom</label><input type="text" name="nom" placeholder="Prénom" required></div>
+      <div class="form-group"><label>Dépôt initial (USDT)</label><input type="number" name="depot" step="0.01" placeholder="0.00"></div>
+      <div class="form-group"><label>Mot de passe</label><input type="password" name="password" placeholder="••••••••" required></div>
       <button type="submit" class="btn btn-primary btn-full">Créer le compte</button>
     </form>
   </div>
 </div>
 
-<!-- Modal : Ajouter des fonds -->
+<!-- Ajouter des fonds -->
 <div class="modal-overlay" id="modal-add-funds">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-funds')">✕</button>
@@ -244,31 +241,64 @@
           {% endfor %}
         </select>
       </div>
-      <div class="form-group">
-        <label>Montant à ajouter (USDT)</label>
-        <input type="number" name="montant" step="0.01" placeholder="0.00" required>
-      </div>
+      <div class="form-group"><label>Montant (USDT)</label><input type="number" name="montant" step="0.01" placeholder="0.00" required></div>
       <button type="submit" class="btn btn-primary btn-full">Confirmer</button>
     </form>
   </div>
 </div>
 
-<!-- Modal : Modifier dépôt -->
+<!-- Retrait de fonds -->
+<div class="modal-overlay" id="modal-retrait">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-retrait')">✕</button>
+    <div class="modal-title">Retrait de fonds</div>
+    <p style="font-size:0.82rem;color:var(--muted2);margin-bottom:1rem;">Le montant sera déduit du dépôt de l'investisseur.</p>
+    <form method="POST" action="/admin/investisseur/retrait">
+      <div class="form-group">
+        <label>Investisseur</label>
+        <select name="investor_id" required>
+          <option value="">— Choisir —</option>
+          {% for inv in stats.investors %}
+          <option value="{{ inv.id }}">{{ inv.nom }} · {{ "%.2f"|format(inv.depot_total) }} USDT</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label>Montant à retirer (USDT)</label><input type="number" name="montant" step="0.01" placeholder="0.00" required></div>
+      <button type="submit" class="btn btn-danger btn-full">Confirmer le retrait</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modifier dépôt -->
 <div class="modal-overlay" id="modal-edit-investor">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-edit-investor')">✕</button>
     <div class="modal-title">Modifier le dépôt</div>
     <form method="POST" action="/admin/investisseur/modifier">
-      <input type="hidden" name="investor_id" id="edit-investor-id">
-      <div class="form-group">
-        <label>Investisseur</label>
-        <input type="text" id="edit-investor-nom" disabled style="opacity:0.5;">
-      </div>
-      <div class="form-group">
-        <label>Dépôt total (USDT)</label>
-        <input type="number" name="depot_total" id="edit-depot-total" step="0.01" required>
-      </div>
+      <input type="hidden" name="investor_id" id="edit-id">
+      <div class="form-group"><label>Investisseur</label><input type="text" id="edit-nom" disabled style="opacity:0.5;"></div>
+      <div class="form-group"><label>Dépôt total (USDT)</label><input type="number" name="depot_total" id="edit-depot" step="0.01" required></div>
       <button type="submit" class="btn btn-primary btn-full">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+<!-- Changer rôle -->
+<div class="modal-overlay" id="modal-role">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-role')">✕</button>
+    <div class="modal-title">Changer le rôle</div>
+    <form method="POST" action="/admin/investisseur/role">
+      <input type="hidden" name="investor_id" id="role-id">
+      <div class="form-group"><label>Investisseur</label><input type="text" id="role-nom" disabled style="opacity:0.5;"></div>
+      <div class="form-group">
+        <label>Nouveau rôle</label>
+        <select name="role" id="role-select">
+          <option value="investor">Investisseur</option>
+          <option value="admin">Administrateur</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Confirmer</button>
     </form>
   </div>
 </div>
@@ -276,18 +306,28 @@
 <script>
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
 function openEditModal(id, nom, depot) {
-  document.getElementById('edit-investor-id').value = id;
-  document.getElementById('edit-investor-nom').value = nom;
-  document.getElementById('edit-depot-total').value = depot;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-nom').value = nom;
+  document.getElementById('edit-depot').value = depot;
   openModal('modal-edit-investor');
 }
+function openRoleModal(id, nom, role) {
+  document.getElementById('role-id').value = id;
+  document.getElementById('role-nom').value = nom;
+  document.getElementById('role-select').value = role;
+  openModal('modal-role');
+}
+
+// Fermer en cliquant hors du modal
 document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
 });
-// Auto-hide toasts after 4s
+
+// Auto-hide toasts
 document.querySelectorAll('.toast').forEach(t => {
-  setTimeout(() => t.style.opacity = '0', 3500);
+  setTimeout(() => { t.style.transition = 'opacity 0.4s'; t.style.opacity = '0'; }, 3500);
   setTimeout(() => t.remove(), 4000);
 });
 </script>

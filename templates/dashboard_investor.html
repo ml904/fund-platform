@@ -9,14 +9,15 @@
 <body>
 <div class="layout">
 
+  <!-- Sidebar desktop -->
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="name">M<span>&</span>O Capital</div>
       <div class="tagline">Gestion de fonds privé</div>
     </div>
     <div class="sidebar-user">
-      <div class="avatar">{{ user.nom[0].upper() }}</div>
-      <div class="info">
+      <div class="avatar avatar-lg">{{ user.nom[0].upper() }}</div>
+      <div>
         <div class="uname">{{ user.nom }}</div>
         <div class="urole">Investisseur</div>
       </div>
@@ -25,38 +26,40 @@
       <a href="/investor" class="active">Mon compte</a>
     </nav>
     <div class="sidebar-bottom">
-      <a href="/logout" class="btn btn-ghost btn-full" style="text-align:center;display:block;">Déconnexion</a>
+      <a href="/logout" class="btn btn-ghost btn-full">Déconnexion</a>
     </div>
   </aside>
 
+  <!-- Nav mobile -->
   <div class="mobile-nav">
-    <span style="font-family:'DM Serif Display',serif;font-size:1.1rem;">M<span style="color:var(--green)">&</span>O</span>
-    <div style="display:flex;align-items:center;gap:0.6rem;">
-      <div class="avatar" style="width:28px;height:28px;font-size:0.72rem;">{{ user.nom[0].upper() }}</div>
+    <div class="brand">M<span>&</span>O Capital</div>
+    <div class="right">
+      <div class="avatar">{{ user.nom[0].upper() }}</div>
       <a href="/logout" class="btn btn-ghost btn-sm">Déco</a>
     </div>
   </div>
 
   <main class="main">
+
     <div class="page-header">
       <h1>Bonjour, {{ user.nom }}</h1>
       <div class="sub">Membre depuis le {{ stats.investor.date_entree or stats.investor.created_at[:10] }}</div>
     </div>
 
-    <!-- Valeur principale -->
+    <!-- Hero valeur -->
     <div class="kpi-hero">
       <div>
         <div class="main-label">Valeur de ma part</div>
-        <div class="main-val">{{ "%.2f"|format(stats.valeur_actuelle) }} <span style="font-size:1.2rem;color:var(--muted2)">USDT</span></div>
-        <div class="main-sub">Dépôt initial : {{ "%.2f"|format(stats.investor.depot_total) }} USDT</div>
+        <div class="main-val">{{ "%.2f"|format(stats.valeur_actuelle) }} <span style="font-size:1rem;color:var(--muted2)">USDT</span></div>
+        <div class="main-sub">Dépôt : {{ "%.2f"|format(stats.investor.depot_total) }} USDT</div>
       </div>
-      <div style="text-align:right;">
+      <div class="right">
         <div class="main-label">Ma performance</div>
-        <div class="main-val {% if stats.gain_total > 0 %}gain{% elif stats.gain_total < 0 %}loss{% else %}neutral{% endif %}" style="font-size:1.8rem;">
+        <div class="main-val {% if stats.gain_total > 0 %}gain{% elif stats.gain_total < 0 %}loss{% else %}neutral{% endif %}" style="font-size:1.7rem;">
           {% if stats.gain_total > 0 %}+{% endif %}{{ "%.2f"|format(stats.gain_total) }}
         </div>
         <div class="main-sub {% if stats.gain_jour > 0 %}gain{% elif stats.gain_jour < 0 %}loss{% else %}neutral{% endif %}">
-          Aujourd'hui : {% if stats.gain_jour > 0 %}+{% endif %}{{ "%.4f"|format(stats.gain_jour) }} USDT
+          Auj. : {% if stats.gain_jour > 0 %}+{% endif %}{{ "%.4f"|format(stats.gain_jour) }} USDT
         </div>
       </div>
     </div>

@@ -5,10 +5,10 @@ from datetime import date
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from dotenv import load_dotenv
-from database import init_db, get_db
+from database import init_db, get_db, fetchone, fetchall, execute
 import fund_logic
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Font, PatternFill
 
 load_dotenv()
 
@@ -21,19 +21,20 @@ def hash_password(password):
 
 
 def seed_admin():
-    db = get_db()
-    count = db.execute("SELECT COUNT(*) FROM investisseurs").fetchone()[0]
-    if count == 0:
-        db.execute(
+    conn = get_db()
+    row = fetchone(conn, "SELECT COUNT(*) as c FROM investisseurs")
+    conn.close()
+    if row and row["c"] == 0:
+        conn2 = get_db()
+        execute(conn2,
             "INSERT INTO investisseurs (nom, password_hash, depot_total, role) VALUES (?,?,?,?)",
             ("Malick", hash_password("admin123"), 76.0, "admin")
         )
-        db.commit()
+        conn2.commit()
+        conn2.close()
         print("Admin créé : Malick / admin123")
-    db.close()
 
 
-# Initialisation au démarrage (gunicorn + dev)
 init_db()
 seed_admin()
 
@@ -42,10 +43,10 @@ def current_user():
     uid = session.get("user_id")
     if not uid:
         return None
-    db = get_db()
-    row = db.execute("SELECT * FROM investisseurs WHERE id=?", (uid,)).fetchone()
-    db.close()
-    return dict(row) if row else None
+    conn = get_db()
+    row = fetchone(conn, "SELECT * FROM investisseurs WHERE id=?", (uid,))
+    conn.close()
+    return row
 
 
 def login_required(fn):
@@ -77,9 +78,9 @@ def login():
     if request.method == "POST":
         nom = request.form.get("nom", "").strip()
         password = request.form.get("password", "")
-        db = get_db()
-        row = db.execute("SELECT * FROM investisseurs WHERE nom=?", (nom,)).fetchone()
-        db.close()
+        conn = get_db()
+        row = fetchone(conn, "SELECT * FROM investisseurs WHERE nom=?", (nom,))
+        conn.close()
         if row and row["password_hash"] == hash_password(password):
             session["user_id"] = row["id"]
             return redirect(url_for("dashboard"))
@@ -134,15 +135,15 @@ def save_solde():
         flash("Solde invalide.", "error")
         return redirect(url_for("admin_dashboard"))
 
-    db = get_db()
-    existing = db.execute("SELECT id FROM soldes WHERE date=?", (date_str,)).fetchone()
-    db.close()
+    conn = get_db()
+    existing = fetchone(conn, "SELECT id FROM soldes WHERE date=?", (date_str,))
+    conn.close()
     if existing:
         flash("Un solde existe déjà pour cette date.", "error")
         return redirect(url_for("admin_dashboard"))
 
     fund_logic.save_solde(date_str, solde)
-    flash("Solde enregistré avec succès.", "success")
+    flash("Solde enregistré.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -163,39 +164,21 @@ def add_investor():
         flash("Nom et mot de passe requis.", "error")
         return redirect(url_for("admin_dashboard"))
 
-    db = get_db()
-    existing = db.execute("SELECT id FROM investisseurs WHERE nom=?", (nom,)).fetchone()
+    conn = get_db()
+    existing = fetchone(conn, "SELECT id FROM investisseurs WHERE nom=?", (nom,))
+    conn.close()
     if existing:
-        db.close()
         flash("Ce nom existe déjà.", "error")
         return redirect(url_for("admin_dashboard"))
 
-    db.execute(
+    conn2 = get_db()
+    execute(conn2,
         "INSERT INTO investisseurs (nom, password_hash, depot_total, role) VALUES (?,?,?,?)",
         (nom, hash_password(password), depot, "investor")
     )
-    db.commit()
-    db.close()
-    flash(f"Investisseur {nom} créé.", "success")
-    return redirect(url_for("admin_dashboard"))
-
-
-@app.route("/admin/investisseur/modifier", methods=["POST"])
-@login_required
-@admin_required
-def edit_investor():
-    investor_id = request.form.get("investor_id", "")
-    try:
-        nouveau_depot = float(request.form.get("depot_total", ""))
-    except ValueError:
-        flash("Montant invalide.", "error")
-        return redirect(url_for("admin_dashboard"))
-
-    db = get_db()
-    db.execute("UPDATE investisseurs SET depot_total=? WHERE id=?", (nouveau_depot, investor_id))
-    db.commit()
-    db.close()
-    flash("Dépôt mis à jour.", "success")
+    conn2.commit()
+    conn2.close()
+    flash(f"{nom} ajouté.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -210,91 +193,127 @@ def add_funds():
         flash("Montant invalide.", "error")
         return redirect(url_for("admin_dashboard"))
 
-    db = get_db()
-    row = db.execute("SELECT depot_total FROM investisseurs WHERE id=?", (investor_id,)).fetchone()
+    conn = get_db()
+    row = fetchone(conn, "SELECT depot_total FROM investisseurs WHERE id=?", (investor_id,))
+    conn.close()
     if not row:
-        db.close()
         flash("Investisseur introuvable.", "error")
         return redirect(url_for("admin_dashboard"))
 
-    db.execute(
-        "UPDATE investisseurs SET depot_total=? WHERE id=?",
-        (row["depot_total"] + montant, investor_id)
-    )
-    db.commit()
-    db.close()
+    conn2 = get_db()
+    execute(conn2, "UPDATE investisseurs SET depot_total=? WHERE id=?",
+            (row["depot_total"] + montant, investor_id))
+    conn2.commit()
+    conn2.close()
     flash("Fonds ajoutés.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/investisseur/retrait", methods=["POST"])
+@login_required
+@admin_required
+def retrait_funds():
+    investor_id = request.form.get("investor_id", "")
+    try:
+        montant = float(request.form.get("montant", ""))
+    except ValueError:
+        flash("Montant invalide.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    conn = get_db()
+    row = fetchone(conn, "SELECT depot_total, nom FROM investisseurs WHERE id=?", (investor_id,))
+    conn.close()
+    if not row:
+        flash("Investisseur introuvable.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    nouveau_depot = round(row["depot_total"] - montant, 4)
+    if nouveau_depot < 0:
+        flash(f"Retrait impossible : solde insuffisant ({row['depot_total']} USDT disponible).", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    conn2 = get_db()
+    execute(conn2, "UPDATE investisseurs SET depot_total=? WHERE id=?", (nouveau_depot, investor_id))
+    conn2.commit()
+    conn2.close()
+    flash(f"Retrait de {montant} USDT effectué pour {row['nom']}.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/investisseur/modifier", methods=["POST"])
+@login_required
+@admin_required
+def edit_investor():
+    investor_id = request.form.get("investor_id", "")
+    try:
+        nouveau_depot = float(request.form.get("depot_total", ""))
+    except ValueError:
+        flash("Montant invalide.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    conn = get_db()
+    execute(conn, "UPDATE investisseurs SET depot_total=? WHERE id=?", (nouveau_depot, investor_id))
+    conn.commit()
+    conn.close()
+    flash("Dépôt mis à jour.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/investisseur/role", methods=["POST"])
+@login_required
+@admin_required
+def change_role():
+    investor_id = request.form.get("investor_id", "")
+    new_role = request.form.get("role", "investor")
+    if new_role not in ("admin", "investor"):
+        flash("Rôle invalide.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    conn = get_db()
+    execute(conn, "UPDATE investisseurs SET role=? WHERE id=?", (new_role, investor_id))
+    conn.commit()
+    conn.close()
+    flash("Rôle mis à jour.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
 # ── Export Excel ──────────────────────────────────────────────────────────────
 
-def make_excel(headers, rows, sheet_name="Historique"):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = sheet_name
-
-    header_fill = PatternFill("solid", fgColor="0d1117")
-    header_font = Font(bold=True, color="00e87a")
-
+def style_header(ws, headers):
+    hf = PatternFill("solid", fgColor="0d1117")
+    hfont = Font(bold=True, color="00e87a")
     for col, h in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col, value=h)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center")
-        ws.column_dimensions[cell.column_letter].width = max(len(h) + 4, 14)
-
-    for row in rows:
-        ws.append(list(row))
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return buf
+        c = ws.cell(row=1, column=col, value=h)
+        c.font = hfont
+        c.fill = hf
+        ws.column_dimensions[c.column_letter].width = max(len(h) + 6, 16)
 
 
 @app.route("/admin/export")
 @login_required
 @admin_required
 def export_admin():
-    db = get_db()
-    soldes = db.execute("SELECT * FROM soldes ORDER BY date DESC").fetchall()
-    investors = db.execute("SELECT * FROM investisseurs").fetchall()
-    gains = db.execute("SELECT * FROM gains_investisseurs ORDER BY date DESC").fetchall()
-    db.close()
+    conn = get_db()
+    soldes = fetchall(conn, "SELECT * FROM soldes ORDER BY date DESC")
+    investors = fetchall(conn, "SELECT * FROM investisseurs")
+    gains = fetchall(conn, "SELECT * FROM gains_investisseurs ORDER BY date DESC")
+    conn.close()
 
     wb = openpyxl.Workbook()
 
-    # Feuille 1 : Historique soldes
     ws1 = wb.active
     ws1.title = "Soldes"
-    h1 = ["Date", "Solde (USDT)", "Gain jour", "% jour", "Gain total"]
-    hf = PatternFill("solid", fgColor="0d1117")
-    hfont = Font(bold=True, color="00e87a")
-    for col, h in enumerate(h1, 1):
-        c = ws1.cell(row=1, column=col, value=h)
-        c.font = hfont; c.fill = hf
-        ws1.column_dimensions[c.column_letter].width = 18
+    style_header(ws1, ["Date", "Solde (USDT)", "Gain jour", "% jour", "Gain total"])
     for s in soldes:
         ws1.append([s["date"], s["solde"], s["gain_jour"], s["pct_jour"], s["gain_total"]])
 
-    # Feuille 2 : Investisseurs
     ws2 = wb.create_sheet("Investisseurs")
-    h2 = ["Nom", "Dépôt (USDT)", "Rôle", "Membre depuis"]
-    for col, h in enumerate(h2, 1):
-        c = ws2.cell(row=1, column=col, value=h)
-        c.font = hfont; c.fill = hf
-        ws2.column_dimensions[c.column_letter].width = 20
+    style_header(ws2, ["Nom", "Dépôt (USDT)", "Rôle", "Membre depuis"])
     for inv in investors:
-        ws2.append([inv["nom"], inv["depot_total"], inv["role"], inv["date_entree"]])
+        ws2.append([inv["nom"], inv["depot_total"], inv["role"], str(inv.get("date_entree", ""))])
 
-    # Feuille 3 : Gains par investisseur
-    ws3 = wb.create_sheet("Gains")
-    h3 = ["Date", "Investisseur", "Part %", "Gain (USDT)"]
-    for col, h in enumerate(h3, 1):
-        c = ws3.cell(row=1, column=col, value=h)
-        c.font = hfont; c.fill = hf
-        ws3.column_dimensions[c.column_letter].width = 20
+    ws3 = wb.create_sheet("Gains par investisseur")
+    style_header(ws3, ["Date", "Investisseur", "Part %", "Gain (USDT)"])
     for g in gains:
         ws3.append([g["date"], g["investisseur_nom"], g["part_pct"], g["gain"]])
 
@@ -302,25 +321,34 @@ def export_admin():
     wb.save(buf)
     buf.seek(0)
     return send_file(buf, download_name="MO_Capital_historique.xlsx",
-                     as_attachment=True, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                     as_attachment=True,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 @app.route("/investor/export")
 @login_required
 def export_investor():
     user = current_user()
-    db = get_db()
-    gains = db.execute(
+    conn = get_db()
+    gains = fetchall(conn,
         "SELECT * FROM gains_investisseurs WHERE investisseur_id=? ORDER BY date DESC",
         (user["id"],)
-    ).fetchall()
-    db.close()
+    )
+    conn.close()
 
-    headers = ["Date", "Part %", "Gain (USDT)"]
-    rows = [(g["date"], g["part_pct"], g["gain"]) for g in gains]
-    buf = make_excel(headers, rows, "Mes gains")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Mes gains"
+    style_header(ws, ["Date", "Part %", "Gain (USDT)"])
+    for g in gains:
+        ws.append([g["date"], g["part_pct"], g["gain"]])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
     return send_file(buf, download_name=f"MO_Capital_{user['nom']}.xlsx",
-                     as_attachment=True, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                     as_attachment=True,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 if __name__ == "__main__":
