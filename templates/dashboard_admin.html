@@ -116,11 +116,11 @@
           <thead>
             <tr>
               <th>Nom</th>
-              <th>Rôle</th>
-              <th>Dépôt</th>
+              <th class="hide-mobile">Rôle</th>
+              <th class="hide-mobile">Dépôt</th>
               <th>Part</th>
-              <th>Valeur actuelle</th>
-              <th>Gain / Perte</th>
+              <th class="hide-mobile">Valeur</th>
+              <th>Gain</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -133,10 +133,10 @@
                   <span style="font-weight:600;">{{ inv.nom }}</span>
                 </div>
               </td>
-              <td><span class="badge badge-{{ inv.role }}">{{ 'Admin' if inv.role == 'admin' else 'Invest.' }}</span></td>
-              <td class="mono">{{ "%.2f"|format(inv.depot_total) }}</td>
+              <td class="hide-mobile"><span class="badge badge-{{ inv.role }}">{{ 'Admin' if inv.role == 'admin' else 'Invest.' }}</span></td>
+              <td class="mono hide-mobile">{{ "%.2f"|format(inv.depot_total) }}</td>
               <td class="mono gain">{{ "%.2f"|format(inv.part_pct) }}%</td>
-              <td class="mono">{{ "%.2f"|format(inv.valeur_actuelle) }}</td>
+              <td class="mono hide-mobile">{{ "%.2f"|format(inv.valeur_actuelle) }}</td>
               <td class="mono {% if inv.gain_total_inv > 0 %}gain{% elif inv.gain_total_inv < 0 %}loss{% else %}neutral{% endif %}">
                 {% if inv.gain_total_inv > 0 %}+{% endif %}{{ "%.2f"|format(inv.gain_total_inv) }}
               </td>
@@ -169,24 +169,24 @@
           <thead>
             <tr>
               <th>Date</th>
-              <th>Solde</th>
+              <th class="hide-mobile">Solde</th>
               <th>Variation</th>
               <th>%</th>
-              <th>Perf. totale</th>
+              <th class="hide-mobile">Perf. totale</th>
             </tr>
           </thead>
           <tbody>
             {% for row in stats.historique %}
             <tr>
               <td class="mono">{{ row.date }}</td>
-              <td class="mono">{{ "%.2f"|format(row.solde) }}</td>
+              <td class="mono hide-mobile">{{ "%.2f"|format(row.solde) }}</td>
               <td class="mono {% if row.gain_jour > 0 %}gain{% elif row.gain_jour < 0 %}loss{% else %}neutral{% endif %}">
                 {% if row.gain_jour > 0 %}+{% endif %}{{ "%.2f"|format(row.gain_jour) }}
               </td>
               <td class="mono {% if row.pct_jour > 0 %}gain{% elif row.pct_jour < 0 %}loss{% else %}neutral{% endif %}">
                 {% if row.pct_jour > 0 %}+{% endif %}{{ "%.2f"|format(row.pct_jour) }}%
               </td>
-              <td class="mono {% if row.gain_total > 0 %}gain{% elif row.gain_total < 0 %}loss{% else %}neutral{% endif %}">
+              <td class="mono hide-mobile {% if row.gain_total > 0 %}gain{% elif row.gain_total < 0 %}loss{% else %}neutral{% endif %}">
                 {% if row.gain_total > 0 %}+{% endif %}{{ "%.2f"|format(row.gain_total) }}
               </td>
             </tr>

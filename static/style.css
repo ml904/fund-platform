@@ -19,11 +19,13 @@
   --sidebar-w: 220px;
 }
 
-body {
+html, body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Syne', sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 /* ══════════════════════════════════════
@@ -376,9 +378,16 @@ td.mono { font-family: 'Space Mono', monospace; font-size: 0.8rem; }
 ══════════════════════════════════════ */
 @media (max-width: 768px) {
 
-  /* Cacher la sidebar, montrer la mobile-nav */
   .sidebar { display: none; }
-  .main { margin-left: 0; padding: 0 0 5rem 0; }
+
+  .layout { display: block; }
+
+  .main {
+    margin-left: 0;
+    padding: 0 1rem 4rem 1rem;
+    width: 100%;
+    max-width: 100%;
+  }
 
   .mobile-nav {
     display: flex;
@@ -391,6 +400,7 @@ td.mono { font-family: 'Space Mono', monospace; font-size: 0.8rem; }
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
+    width: 100%;
   }
   .mobile-nav .brand {
     font-family: 'DM Serif Display', serif;
@@ -400,45 +410,47 @@ td.mono { font-family: 'Space Mono', monospace; font-size: 0.8rem; }
   .mobile-nav .brand span { color: var(--green); }
   .mobile-nav .right { display: flex; align-items: center; gap: 0.5rem; }
 
-  /* Contenu principal avec padding horizontal */
-  .main > * { padding-left: 1rem; padding-right: 1rem; }
-  .main > .page-header { padding-top: 1.2rem; }
+  .page-header { padding-top: 1.2rem; }
 
-  /* Hero KPI en colonne */
-  .kpi-hero { flex-direction: column; align-items: flex-start; }
+  /* Hero en colonne */
+  .kpi-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.2rem;
+  }
   .kpi-hero .right { text-align: left; }
-  .kpi-hero .main-val { font-size: 1.8rem; }
+  .kpi-hero .main-val { font-size: 1.7rem; }
 
-  /* Grille 2 colonnes → 1 colonne */
+  /* Grilles */
   .grid-2 { grid-template-columns: 1fr; }
-
-  /* KPI grid : 2 colonnes max */
   .kpi-grid { grid-template-columns: 1fr 1fr; }
-
-  /* Stat investisseur : 2 colonnes */
   .inv-stat-grid { grid-template-columns: 1fr 1fr; }
-  .inv-stat .value { font-size: 1.15rem; }
+  .inv-stat .value { font-size: 1.1rem; }
 
-  /* Cards sans padding latéral externe (elles ont le leur) */
-  .card { border-radius: 10px; }
+  /* Tableau : scroll interne uniquement, pas de débordement page */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+  table { min-width: 0; width: 100%; }
+  thead th, td { padding: 0.55rem 0.5rem; font-size: 0.75rem; }
+  td.mono { font-size: 0.72rem; }
 
-  /* Tableau : scroll horizontal */
-  .table-wrap { margin: 0 -1rem; padding: 0 1rem; }
-  table { min-width: 520px; }
+  /* Masquer colonnes secondaires sur mobile */
+  .hide-mobile { display: none; }
 
-  /* Toast en bas, pleine largeur sur mobile */
+  /* Toast pleine largeur */
   .toast-container {
     bottom: 0.8rem;
     right: 0.8rem;
     left: 0.8rem;
     max-width: none;
   }
-
-  /* Boutons pleins en mobile */
-  .mobile-full { width: 100%; display: block; text-align: center; margin-top: 0.5rem; }
 }
 
 @media (max-width: 400px) {
   .kpi-grid { grid-template-columns: 1fr; }
   .inv-stat-grid { grid-template-columns: 1fr; }
+  .kpi-hero .main-val { font-size: 1.4rem; }
 }
